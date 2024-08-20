@@ -1,10 +1,17 @@
+using APIArena.Middleware;
 using APIArena.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using APIArena.Services.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using APIArena.Services;
+using APIArena.Attributes;
+using Tellerando.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddAuthentication().AddBearerToken();
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -12,7 +19,36 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "APIArena", Version = "v1" });
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "X-API-KEY",
+        Type = SecuritySchemeType.ApiKey,
+        Description = "API Key needed to access the endpoints"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "ApiKey"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
 });
+
+builder.Services.AddSingleton<IAuthorizationHandler, AuthorizationHandler>();
+builder.Services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
+
+builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<SessionService>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContextWithPooledFactory<DataContext>(options =>
 {
@@ -48,6 +84,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 
