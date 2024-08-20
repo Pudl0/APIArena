@@ -1,4 +1,4 @@
-namespace APIArena
+namespace APIArena.Models
 {
     public class WeatherForecast
     {

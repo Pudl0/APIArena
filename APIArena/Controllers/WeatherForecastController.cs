@@ -1,9 +1,11 @@
+using APIArena.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace APIArena.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/v1/[controller]")]
+    [RequireHttps]
     public class WeatherForecastController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
