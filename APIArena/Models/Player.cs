@@ -11,5 +11,6 @@ namespace APIArena.Models
         public required int Experience { get; set; }
         public required int Gold { get; set; }
 
+
     }
 }

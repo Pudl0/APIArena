@@ -8,13 +8,12 @@ namespace APIArena.Models
         [Key]
         public required Guid Id { get; set; }
         public required Guid Player1Id { get; set; }
-        public required Guid Player2Id { get; set; }
+        public Guid? Player2Id { get; set; } = null;
         public required Guid ArenaId { get; set; }
+        public required int Round { get; set; }
         [ForeignKey(nameof(Player1Id))]
         public virtual Player Player1 { get; set; } = default!;
         [ForeignKey(nameof(Player2Id))]
-        public virtual Player Player2 { get; set; } = default!;
-        [ForeignKey(nameof(ArenaId))]
-        public virtual Arena Arena { get; set; } = default!;
+        public virtual Player? Player2 { get; set; } = default!;
     }
 }

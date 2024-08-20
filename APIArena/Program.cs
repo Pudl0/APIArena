@@ -47,8 +47,11 @@ builder.Services.AddSingleton<IAuthorizationHandler, AuthorizationHandler>();
 builder.Services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
 
 builder.Services.AddScoped<ApiKeyService>();
-builder.Services.AddScoped<SessionService>();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<MapService>();
+builder.Services.AddScoped<PlayerService>();
 
 builder.Services.AddDbContextWithPooledFactory<DataContext>(options =>
 {

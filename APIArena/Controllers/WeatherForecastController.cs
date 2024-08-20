@@ -1,3 +1,4 @@
+using APIArena.Attributes;
 using APIArena.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -5,6 +6,7 @@ namespace APIArena.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [ApiKeyRequired(Scopes = ["Weather"])]
     [RequireHttps]
     public class WeatherForecastController : ControllerBase
     {
