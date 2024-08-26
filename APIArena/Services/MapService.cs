@@ -2,6 +2,7 @@
 using APIArena.Models;
 using APIArena.Server;
 using Microsoft.EntityFrameworkCore;
+using System.Drawing;
 
 namespace APIArena.Services
 {
@@ -21,8 +22,31 @@ namespace APIArena.Services
             }
 
             map.Id = await CreateMapAsync(map);
+            await GenerateRessourcesAsync(map);
 
             return map;
+        }
+        private async Task GenerateRessourcesAsync(MapDTO mapDto)
+        {
+            const int spawnrate = 4;
+            Random random = new();
+            
+            int ressourceCount = mapDto.Width * mapDto.Height / spawnrate; // Replace with the number of ones you want to place
+
+            for (int i = 0; i < ressourceCount; i++)
+            {
+                int x, y;
+                do
+                {
+                    x = random.Next(0, mapDto.Width);
+                    y = random.Next(0, mapDto.Height);
+                }
+                // Ensure that the selected coordinates are not [0][0], [max-1][max-1], or already set to 1
+                while ((x == 0 && y == 0) || (x == mapDto.Width - 1 && y == mapDto.Height - 1) || mapDto.Tiles[x][y].Type == TileDTO.TileType.Gold);
+                mapDto.Tiles[x][y].Type = TileDTO.TileType.Gold;
+            }
+
+            await UpdateMapAsync(mapDto);
         }
         public async Task<Guid> CreateMapAsync(MapDTO mapDto)
         {
