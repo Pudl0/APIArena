@@ -1,6 +1,7 @@
 ﻿using APIArena.DTO;
 using APIArena.Models;
 using APIArena.Server;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 
 namespace APIArena.Services
@@ -79,9 +80,14 @@ namespace APIArena.Services
             while (await _context.Sessions.Where(s => s.Id == id && s.Player2Id == null).AnyAsync())
                 await Task.Delay(1000);
         }
+        public async Task WaitForRoundEnd(Guid id)
+        {
+            while (await _context.Sessions.Include(s => s.Player1).Include(s => s.Player2).Where(s => s.Id == id && (s.Player1.PlayedTurn == true && s.Player2!.PlayedTurn == true)).AnyAsync())
+                await Task.Delay(1000);
+        }
         public async Task<Session?> GetSessionByIdAsync(Guid id)
-            => await _context.Sessions.AsNoTracking().Where(s => s.Id == id).FirstOrDefaultAsync();
-        public async Task<bool> IncrementTurn(Guid id)
+            => await _context.Sessions.Include(s => s.Player1).Include(s => s.Player2).AsNoTracking().Where(s => s.Id == id).FirstOrDefaultAsync();
+        public async Task<bool> IncrementRound(Guid id)
         {
             Session? session = await GetSessionByIdAsync(id);
             if (session == null)

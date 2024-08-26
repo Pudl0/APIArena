@@ -17,5 +17,9 @@ namespace APIArena.DTO
             else
                 Tiles[0][0].Type = TileDTO.TileType.EnemyBase;
         }
+        public bool ValidPlayerPosition(Player player)
+        {  
+            return player.XPos >= 0 && player.XPos < Width && player.YPos >= 0 && player.YPos < Height;
+        }
     }
 }
