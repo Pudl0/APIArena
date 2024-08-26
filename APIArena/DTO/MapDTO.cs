@@ -22,5 +22,9 @@ namespace APIArena.DTO
         {  
             return player.XPos >= 0 && player.XPos < Width && player.YPos >= 0 && player.YPos < Height;
         }
+        public bool IsGoldRemaining()
+        {
+            return Tiles.Where(row => row.Any(tile => tile.Type == TileDTO.TileType.Gold)).Any();
+        }
     }
 }

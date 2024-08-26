@@ -110,12 +110,22 @@ namespace APIArena.Controllers
                             return BadRequest(ModelState);
                         }
                         break;
-                    //case "MineRessource":
-                    //    _mapService.MineRessource(session, player);
-                    //    break;
-                    //case "StoreRessource":
-                    //    _mapService.StoreRessource(session, player);
-                    //    break;
+                    case "MineRessource":
+                        if (!await _playerService.MineRessourceAsync(player, map))
+                        {
+                            ModelState.AddModelError("Mine", "Invalid Mine");
+                            await TurnEnd(player, session);
+                            return BadRequest(ModelState);
+                        }
+                        break;
+                    case "StoreRessource":
+                        if (!await _playerService.StoreRessourceAsync(player, map))
+                        {
+                            ModelState.AddModelError("Store", "Invalid Store");
+                            await TurnEnd(player, session);
+                            return BadRequest(ModelState);
+                        }
+                        break;
                     default:
                         return BadRequest();
                 }
@@ -126,6 +136,16 @@ namespace APIArena.Controllers
 
                 // end turn when this player has played
                 await TurnEnd(player, session);
+
+                if (EndGameConditionReached(map, session))
+                {
+                    await _sessionService.EndGame(session);
+
+                    if (player.Gold > session.Player1.Gold)
+                        return Ok(new { message = "You Win" });
+                    else
+                        return Ok(new { message = "You Loose" });
+                }
 
                 return Ok();
             }
@@ -140,6 +160,16 @@ namespace APIArena.Controllers
 
             player.PlayedTurn = false;
             await _playerService.UpdatePlayerAsync(player);
+        }
+        private static bool EndGameConditionReached(MapDTO map, Session session)
+        {
+            if (map.IsGoldRemaining())
+                return true;
+
+            if (session.Round >= 50)
+                return true;
+
+            return false;
         }
     }
 }

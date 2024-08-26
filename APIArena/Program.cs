@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using APIArena.Services;
 using APIArena.Attributes;
 using Tellerando.Infrastructure.Services;
+using APIArena.Controllers;
+using APIArena.DTO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +55,8 @@ builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<MapService>();
 builder.Services.AddScoped<PlayerService>();
 
+builder.Services.AddScoped<SettingService>();
+
 builder.Services.AddDbContextWithPooledFactory<DataContext>(options =>
 {
     string? connstring = builder.Configuration.GetConnectionString("APIArena");
@@ -76,6 +80,14 @@ builder.Services.AddDbContextWithPooledFactory<DataContext>(options =>
 });
 
 var app = builder.Build();
+
+// always set default values for the settings
+using (var scope = app.Services.CreateScope())
+{
+    var settingsService = scope.ServiceProvider.GetRequiredService<SettingService>();
+
+    settingsService.SetSetting("GameMode", GameDTO.GameMode.PvE);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

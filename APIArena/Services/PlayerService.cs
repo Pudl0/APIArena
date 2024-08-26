@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace APIArena.Services
 {
-    public class PlayerService(DataContext _context)
+    public class PlayerService(DataContext _context, MapService _mapService)
     {
         public async Task<Player> CreatePlayerAsync(string name, ApiKey apiKey)
         {
@@ -83,6 +83,42 @@ namespace APIArena.Services
 
             await UpdatePlayerAsync(player);
             return player;
+        }
+
+        public async Task<bool> MineRessourceAsync(Player player, MapDTO map)
+        {
+            if (!(map.Tiles[player.XPos][player.YPos].Type == TileDTO.TileType.Gold))
+                return false;
+
+            player.Gold++;
+            map.Tiles[player.XPos][player.YPos].Type = TileDTO.TileType.Empty;
+            await UpdatePlayerAsync(player);
+            await _mapService.UpdateMapAsync(map);
+            return true;
+        }
+
+        public async Task<bool> StoreRessourceAsync(Player player, MapDTO map)
+        {
+
+            if (!(map.Tiles[player.XPos][player.YPos].Type == TileDTO.TileType.Base))
+                return false;
+
+            player.Gold--;
+            player.Level++;
+            await UpdatePlayerAsync(player);
+            return true;
+        }
+
+        public async Task<bool> DeletePlayerAsync(Guid id)
+        {
+
+            Player? player = await _context.Players.FirstOrDefaultAsync(p => p.Id == id);
+            if (player == null)
+                return false;
+
+            _context.Players.Remove(player);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

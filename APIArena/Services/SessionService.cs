@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace APIArena.Services
 {
-    public class SessionService(DataContext _context, PlayerService _playerService)
+    public class SessionService(DataContext _context, PlayerService _playerService, MapService _mapService)
     {
         public async Task<GameDTO> JoinOrCreateSessionAsync(Player player, MapDTO map)
         {
@@ -96,6 +96,17 @@ namespace APIArena.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+        public async Task EndGame(Session session)
+        {
+            await _playerService.DeletePlayerAsync(session.Player1Id);
+            if (session.Player2Id is not null)
+                await _playerService.DeletePlayerAsync((Guid)session.Player2Id);
+
+            await _mapService.DeleteMapAsync(session.MapId);
+
+            _context.Sessions.Remove(session);
+            await _context.SaveChangesAsync();
         }
     }
 }

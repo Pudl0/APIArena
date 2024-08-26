@@ -70,5 +70,16 @@ namespace APIArena.Services
 
             return map.MapDTO;
         }
+        public async Task<bool> DeleteMapAsync(Guid id)
+        {
+
+            Map? map = await _context.Maps.FirstOrDefaultAsync(m => m.Id == id);
+            if (map == null)
+                return false;
+
+            _context.Maps.Remove(map);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
