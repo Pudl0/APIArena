@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using APIArena.DTO;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace APIArena.Models  
@@ -11,6 +12,7 @@ namespace APIArena.Models
         public Guid? Player2Id { get; set; } = null;
         public required Guid MapId { get; set; }
         public required int Round { get; set; }
+        public required GameDTO.GameMode Mode { get; set; }
         [ForeignKey(nameof(Player1Id))]
         public virtual Player Player1 { get; set; } = default!;
         [ForeignKey(nameof(Player2Id))]

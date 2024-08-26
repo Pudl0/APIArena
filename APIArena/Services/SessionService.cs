@@ -8,7 +8,7 @@ namespace APIArena.Services
 {
     public class SessionService(DataContext _context, PlayerService _playerService, MapService _mapService)
     {
-        public async Task<GameDTO> JoinOrCreateSessionAsync(Player player, MapDTO map)
+        public async Task<GameDTO> JoinOrCreatePvPSessionAsync(Player player, MapDTO map)
         {
             List<Session> openSession = await _context.Sessions
                 .Where(s => s.Player2Id == null).ToListAsync();
@@ -16,7 +16,25 @@ namespace APIArena.Services
             if (openSession.Count > 0)
                 return await JoinSessionAsync(openSession.First().Id, player, map);
 
-            return await CreateSessionAsync(player.Id, map.Id);
+            var session = await CreateSessionAsync(player.Id, map.Id, GameDTO.GameMode.PvP);
+            await WaitingForSecondPlayer(session.Id);
+
+            session = await GetSessionByIdAsync(session.Id);
+            if (session!.Player2Id == null)
+            {
+                throw new Exception("Session Error");
+            }
+
+            return new GameDTO
+            {
+                Id = session.Id,
+                Player = new PlayerDTO
+                {
+                    Id = player.Id,
+                    X = 0,
+                    Y = 0
+                }
+            };
         }
         private async Task<GameDTO> JoinSessionAsync(Guid id, Player player, MapDTO map)
         {
@@ -39,7 +57,7 @@ namespace APIArena.Services
                 }
             };
         }
-        private async Task<GameDTO> CreateSessionAsync(Guid playerId, Guid mapId)
+        private async Task<Session> CreateSessionAsync(Guid playerId, Guid mapId, GameDTO.GameMode gameMode)
         {
             Guid sessionId = Guid.NewGuid();
 
@@ -48,31 +66,14 @@ namespace APIArena.Services
                 Id = sessionId,
                 Player1Id = playerId,
                 MapId = mapId,
-                Round = 0
+                Round = 0,
+                Mode = gameMode
             };
 
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync();
 
-            await WaitingForSecondPlayer(sessionId);
-
-            session = await GetSessionByIdAsync(sessionId);
-
-            if (session!.Player2Id == null)
-            {
-                throw new Exception("Session Error");
-            }
-
-            return new GameDTO
-            {
-                Id = session.Id,
-                Player = new PlayerDTO
-                {
-                    Id = playerId,
-                    X = 0,
-                    Y = 0
-                }
-            };
+            return session;
         }
         public async Task WaitingForSecondPlayer(Guid id)
         {
@@ -107,6 +108,14 @@ namespace APIArena.Services
 
             _context.Sessions.Remove(session);
             await _context.SaveChangesAsync();
+        }
+        public async Task<GameDTO> JoinPvESessionAsync(Player player, MapDTO map)
+        {
+            Player botPlayer = await _playerService.CreatePlayerAsync("Bot", null);
+
+            Session session = await CreateSessionAsync(botPlayer.Id, map.Id, GameDTO.GameMode.PvE);
+
+            return await JoinSessionAsync(session.Id, player, map);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace APIArena.Models
         public required Guid Id { get; set; }
         public required string Name { get; set; }
         [MaxLength(32)]
-        public required byte[] ApiKeyId { get; set; }
+        public required byte[]? ApiKeyId { get; set; }
         public bool PlayedTurn { get; set; } = false;
         public required int Level { get; set; }
         public required int Gold { get; set; }

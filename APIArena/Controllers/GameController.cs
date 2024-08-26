@@ -12,7 +12,7 @@ namespace APIArena.Controllers
     [Route("api/v1/[controller]")]
     [ApiKeyRequired(Scopes = ["Game"])]
     [RequireHttps]
-    public class GameController(IApiKeyValidator _apiKeyValidator, SessionService _sessionService, MapService _mapService, PlayerService _playerService) : ControllerBase
+    public class GameController(IApiKeyValidator _apiKeyValidator, SessionService _sessionService, MapService _mapService, PlayerService _playerService, SettingService _settingService) : ControllerBase
     {
         [HttpPost("newgame")]
         public async Task<IActionResult> NewGame()
@@ -28,20 +28,50 @@ namespace APIArena.Controllers
                 if (apiKey == null)
                     return Unauthorized();
 
-                MapDTO map = await _mapService.InitializeMapAsync();
+                GameDTO.GameMode gameMode = _settingService.GetSetting<GameDTO.GameMode>("GameMode");
 
-                Player player = await _playerService.CreatePlayerAsync("PlaceHolderName", apiKey);
-
-                GameDTO game = await _sessionService.JoinOrCreateSessionAsync(player, map);
-
-                map.UpdateBasePositions(player);
-                await _mapService.UpdateMapAsync(map);
-
-                return Ok(new { game, map });
+                switch (gameMode)
+                {
+                    case GameDTO.GameMode.PvP:
+                        return await NewPvPGame(apiKey);
+                    case GameDTO.GameMode.PvE:
+                        return await NewPvEGame(apiKey);
+                    default:
+                        return BadRequest();
+                }
             }
 
             return BadRequest();
         }
+
+        private async Task<IActionResult> NewPvPGame(ApiKey apiKey)
+        {
+            MapDTO map = await _mapService.InitializeMapAsync();
+
+            Player player = await _playerService.CreatePlayerAsync("PlaceHolderName", apiKey);
+
+            GameDTO game = await _sessionService.JoinOrCreatePvPSessionAsync(player, map);
+
+            map.UpdateBasePositions(player);
+            await _mapService.UpdateMapAsync(map);
+
+            return Ok(new { game, map });
+        }
+
+        private async Task<IActionResult> NewPvEGame(ApiKey apiKey)
+        {
+            MapDTO map = await _mapService.InitializeMapAsync();
+
+            Player player = await _playerService.CreatePlayerAsync(apiKey.Name, apiKey);
+
+            GameDTO game = await _sessionService.JoinPvESessionAsync(player, map);
+
+            map.UpdateBasePositions(player);
+            await _mapService.UpdateMapAsync(map);
+
+            return Ok(new { game, map });
+        }
+
         [HttpPost("play")]
         public async Task<IActionResult> Play(Guid gameId, string action)
         {
@@ -63,94 +93,110 @@ namespace APIArena.Controllers
                     return NotFound();
                 }
 
-                Player? player = await _playerService.GetPlayerByApiKeyAndSessionAsync(apiKey, session);
-
-                // If the player has already played his turn and makes another request to play the turn this error will be returned
-                if (player.PlayedTurn)
+                switch (session.Mode)
                 {
-                    ModelState.AddModelError("Turn", "You have already played your current Turn");
-                    return BadRequest(ModelState);
-                }
-
-                MapDTO? map = await _mapService.GetMapDTOByIdAsync(session.MapId);
-                if (map == null)
-                    return NotFound();
-
-                switch (action)
-                {
-                    case "MoveTop":
-                        if (_playerService.MoveTop(player, map) is null)
-                        {
-                            ModelState.AddModelError("Move", "Invalid Move");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
-                    case "MoveBottom":
-                        if (_playerService.MoveBottom(player, map) is null)
-                        {
-                            ModelState.AddModelError("Move", "Invalid Move");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
-                    case "MoveLeft":
-                        if (_playerService.MoveLeft(player, map) is null)
-                        {
-                            ModelState.AddModelError("Move", "Invalid Move");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
-                    case "MoveRight":
-                        if (_playerService.MoveRight(player, map) is null)
-                        {
-                            ModelState.AddModelError("Move", "Invalid Move");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
-                    case "MineRessource":
-                        if (!await _playerService.MineRessourceAsync(player, map))
-                        {
-                            ModelState.AddModelError("Mine", "Invalid Mine");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
-                    case "StoreRessource":
-                        if (!await _playerService.StoreRessourceAsync(player, map))
-                        {
-                            ModelState.AddModelError("Store", "Invalid Store");
-                            await TurnEnd(player, session);
-                            return BadRequest(ModelState);
-                        }
-                        break;
+                    case GameDTO.GameMode.PvP:
+                        return await PlayPvPGame(apiKey, session, action);
+                    case GameDTO.GameMode.PvE:
+                        return await PlayPvEGame(apiKey, session, action);
                     default:
                         return BadRequest();
                 }
-
-                // if player1 or 2 has played his turn, increment the round
-                if (session.Player1.PlayedTurn || session.Player2!.PlayedTurn)
-                    await _sessionService.IncrementRound(session.Id);
-
-                // end turn when this player has played
-                await TurnEnd(player, session);
-
-                if (EndGameConditionReached(map, session))
-                {
-                    await _sessionService.EndGame(session);
-
-                    if (player.Gold > session.Player1.Gold)
-                        return Ok(new { message = "You Win" });
-                    else
-                        return Ok(new { message = "You Loose" });
-                }
-
-                return Ok();
             }
 
             return BadRequest();
+        }
+        private async Task<IActionResult> PlayPvPGame(ApiKey apiKey, Session session, string action)
+        {
+            Player? player = await _playerService.GetPlayerByApiKeyAndSessionAsync(apiKey, session);
+
+            // If the player has already played his turn and makes another request to play the turn this error will be returned
+            if (player.PlayedTurn)
+            {
+                ModelState.AddModelError("Turn", "You have already played your current Turn");
+                return BadRequest(ModelState);
+            }
+
+            MapDTO? map = await _mapService.GetMapDTOByIdAsync(session.MapId);
+            if (map == null)
+                return NotFound();
+
+            switch (action)
+            {
+                case "MoveTop":
+                    if (_playerService.MoveTop(player, map) is null)
+                    {
+                        ModelState.AddModelError("Move", "Invalid Move");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                case "MoveBottom":
+                    if (_playerService.MoveBottom(player, map) is null)
+                    {
+                        ModelState.AddModelError("Move", "Invalid Move");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                case "MoveLeft":
+                    if (_playerService.MoveLeft(player, map) is null)
+                    {
+                        ModelState.AddModelError("Move", "Invalid Move");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                case "MoveRight":
+                    if (_playerService.MoveRight(player, map) is null)
+                    {
+                        ModelState.AddModelError("Move", "Invalid Move");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                case "MineRessource":
+                    if (!await _playerService.MineRessourceAsync(player, map))
+                    {
+                        ModelState.AddModelError("Mine", "Invalid Mine");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                case "StoreRessource":
+                    if (!await _playerService.StoreRessourceAsync(player, map))
+                    {
+                        ModelState.AddModelError("Store", "Invalid Store");
+                        await TurnEnd(player, session);
+                        return BadRequest(ModelState);
+                    }
+                    break;
+                default:
+                    return BadRequest();
+            }
+
+            // if player1 or 2 has played his turn, increment the round
+            if (session.Player1.PlayedTurn || session.Player2!.PlayedTurn)
+                await _sessionService.IncrementRound(session.Id);
+
+            // end turn when this player has played
+            await TurnEnd(player, session);
+
+            if (EndGameConditionReached(map, session))
+            {
+                await _sessionService.EndGame(session);
+
+                if (player.Gold > session.Player1.Gold)
+                    return Ok(new { message = "You Win" });
+                else
+                    return Ok(new { message = "You Loose" });
+            }
+
+            return Ok();
+        }
+        private async Task<IActionResult> PlayPvEGame(ApiKey apikey, Session session, string action)
+        {
+            
         }
         private async Task TurnEnd(Player player, Session session)
         {

@@ -8,7 +8,7 @@ namespace APIArena.Services
 {
     public class PlayerService(DataContext _context, MapService _mapService)
     {
-        public async Task<Player> CreatePlayerAsync(string name, ApiKey apiKey)
+        public async Task<Player> CreatePlayerAsync(string name, ApiKey? apiKey)
         {
             Guid id = Guid.NewGuid();
             Player player = new()
@@ -19,7 +19,7 @@ namespace APIArena.Services
                 Gold = 0,
                 XPos = 0,
                 YPos = 0,
-                ApiKeyId = apiKey.Id
+                ApiKeyId = apiKey == null ? null : apiKey.Id
             };
 
             _context.Players.Add(player);
