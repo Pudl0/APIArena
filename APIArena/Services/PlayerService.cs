@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace APIArena.Services
 {
-    public class PlayerService(DataContext _context, MapService _mapService)
+    public class PlayerService(DataContext _context)
     {
         public async Task<Player> CreatePlayerAsync(string name, ApiKey apiKey)
         {

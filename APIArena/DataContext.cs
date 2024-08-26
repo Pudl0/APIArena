@@ -20,6 +20,7 @@ namespace APIArena.Server
         public virtual DbSet<ApiKey> ApiKeys { get; set; } = null!;
         public virtual DbSet<Session> Sessions { get; set; } = null!;
         public virtual DbSet<Player> Players { get; set; } = null!;
+        public virtual DbSet<Map> Maps { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

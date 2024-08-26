@@ -28,13 +28,14 @@ namespace APIArena.Controllers
                 if (apiKey == null)
                     return Unauthorized();
 
-                MapDTO map = _mapService.InitializeMap();
+                MapDTO map = await _mapService.InitializeMapAsync();
 
                 Player player = await _playerService.CreatePlayerAsync("PlaceHolderName", apiKey);
 
                 GameDTO game = await _sessionService.JoinOrCreateSessionAsync(player, map);
 
                 map.UpdateBasePositions(player);
+                await _mapService.UpdateMapAsync(map);
 
                 return Ok(new { game, map });
             }
@@ -71,9 +72,9 @@ namespace APIArena.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // map needs to be reinitialized because the map is not stored in the database
-                MapDTO map = _mapService.InitializeMap();
-                map.UpdateBasePositions(player);
+                MapDTO? map = await _mapService.GetMapDTOByIdAsync(session.MapId);
+                if (map == null)
+                    return NotFound();
 
                 switch (action)
                 {

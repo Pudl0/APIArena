@@ -16,7 +16,7 @@ namespace APIArena.Services
             if (openSession.Count > 0)
                 return await JoinSessionAsync(openSession.First().Id, player, map);
 
-            return await CreateSessionAsync(player.Id);
+            return await CreateSessionAsync(player.Id, map.Id);
         }
         private async Task<GameDTO> JoinSessionAsync(Guid id, Player player, MapDTO map)
         {
@@ -39,16 +39,15 @@ namespace APIArena.Services
                 }
             };
         }
-        private async Task<GameDTO> CreateSessionAsync(Guid playerId)
+        private async Task<GameDTO> CreateSessionAsync(Guid playerId, Guid mapId)
         {
             Guid sessionId = Guid.NewGuid();
-            Guid arenaId = Guid.NewGuid();
 
             Session? session = new()
             {
                 Id = sessionId,
                 Player1Id = playerId,
-                ArenaId = arenaId,
+                MapId = mapId,
                 Round = 0
             };
 
