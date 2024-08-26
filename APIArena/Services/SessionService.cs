@@ -7,64 +7,90 @@ namespace APIArena.Services
 {
     public class SessionService(DataContext _context, PlayerService _playerService)
     {
-        public async Task<GameDTO> JoinOrCreateSessionAsync()
+        public async Task<GameDTO> JoinOrCreateSessionAsync(Player player, MapDTO map)
         {
             List<Session> openSession = await _context.Sessions
                 .Where(s => s.Player2Id == null).ToListAsync();
 
             if (openSession.Count > 0)
-                return await JoinSessionAsync(openSession.First().Id);
+                return await JoinSessionAsync(openSession.First().Id, player, map);
 
-            return await CreateSessionAsync();
+            return await CreateSessionAsync(player.Id);
         }
-        private async Task<GameDTO> JoinSessionAsync(Guid id)
+        private async Task<GameDTO> JoinSessionAsync(Guid id, Player player, MapDTO map)
         {
-            Guid PlayerId = await _playerService.CreatePlayerAsync("Player2");
-            Session? session = await _context.Sessions.Where(s => s.Id == id).FirstOrDefaultAsync();
-            session!.Player2Id = PlayerId;
-            _context.Sessions.Update(session);
+            Session? session = await _context.Sessions.FindAsync(id);
+            session!.Player2Id = player.Id;
             await _context.SaveChangesAsync();
 
-            return new()
+            player.XPos = map.Width - 1;
+            player.YPos = map.Height - 1;
+            await _playerService.UpdatePlayerAsync(player);
+
+            return new GameDTO
             {
                 Id = session.Id,
-                PlayerId = PlayerId,
-                EnemyId = session.Player1Id
+                Player = new PlayerDTO
+                {
+                    Id = player.Id,
+                    X = player.XPos,
+                    Y = player.YPos
+                }
             };
         }
-        private async Task<GameDTO> CreateSessionAsync()
+        private async Task<GameDTO> CreateSessionAsync(Guid playerId)
         {
-            Guid PlayerId = await _playerService.CreatePlayerAsync("Player1");
+            Guid sessionId = Guid.NewGuid();
+            Guid arenaId = Guid.NewGuid();
+
             Session? session = new()
             {
-                Id = Guid.NewGuid(),
-                Player1Id = PlayerId,
-                ArenaId = Guid.NewGuid(),
+                Id = sessionId,
+                Player1Id = playerId,
+                ArenaId = arenaId,
                 Round = 0
             };
 
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync();
 
-            await WaitingForSecondPlayer(session.Id);
-            session = await GetSessionByIdAsync(session.Id);
+            await WaitingForSecondPlayer(sessionId);
+
+            session = await GetSessionByIdAsync(sessionId);
 
             if (session!.Player2Id == null)
-                throw new Exception("Session Error");
-
-            return new()
             {
-                Id = session!.Id,
-                PlayerId = PlayerId,
-                EnemyId = (Guid)session.Player2Id
+                throw new Exception("Session Error");
+            }
+
+            return new GameDTO
+            {
+                Id = session.Id,
+                Player = new PlayerDTO
+                {
+                    Id = playerId,
+                    X = 0,
+                    Y = 0
+                }
             };
         }
-        private async Task WaitingForSecondPlayer(Guid id)
+        public async Task WaitingForSecondPlayer(Guid id)
         {
             while (await _context.Sessions.Where(s => s.Id == id && s.Player2Id == null).AnyAsync())
                 await Task.Delay(1000);
         }
-        private async Task<Session?> GetSessionByIdAsync(Guid id)
+        public async Task<Session?> GetSessionByIdAsync(Guid id)
             => await _context.Sessions.AsNoTracking().Where(s => s.Id == id).FirstOrDefaultAsync();
+        public async Task<bool> IncrementTurn(Guid id)
+        {
+            Session? session = await GetSessionByIdAsync(id);
+            if (session == null)
+                return false;
+
+            session.Round++;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
     }
 }

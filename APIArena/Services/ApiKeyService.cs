@@ -13,6 +13,12 @@ namespace Tellerando.Infrastructure.Services
             return [.. context.ApiKeys.OrderBy(k => k.Name)];
         }
 
+        public async Task<ApiKey?> GetApiKeyByIdAsync(byte[] id)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            return await context.ApiKeys.FindAsync(id);
+        }
+
         public string CreateKey(string name, string scopes = "")
         {
             if (string.IsNullOrEmpty(name))

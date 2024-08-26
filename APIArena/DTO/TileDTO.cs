@@ -7,8 +7,6 @@
             Empty,
             Base,
             EnemyBase,
-            Player,
-            Enemy,
             Gold
         }
         public TileType Type { get; set; }

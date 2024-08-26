@@ -1,4 +1,5 @@
 ﻿using APIArena.DTO;
+using APIArena.Models;
 
 namespace APIArena.Services
 {
@@ -6,6 +7,7 @@ namespace APIArena.Services
     {
         public MapDTO InitializeMap()
         {
+            
             MapDTO map = new(12, 12);
             for (int i = 0; i < map.Height; i++)
             {
@@ -16,15 +18,6 @@ namespace APIArena.Services
                 }
                 map.Tiles.Add(row);
             }
-
-            AddPlayers(map);
-
-            return map;
-        }
-        private MapDTO AddPlayers(MapDTO map)
-        {
-            map.Tiles[0][0].Type = TileDTO.TileType.Base;
-            map.Tiles[map.Height - 1][map.Width - 1].Type = TileDTO.TileType.EnemyBase;
 
             return map;
         }

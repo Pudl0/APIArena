@@ -2,8 +2,7 @@
 {
     public class GameDTO
     {
-        public Guid Id { get; set; }
-        public Guid PlayerId { get; set; }
-        public Guid EnemyId { get; set; }
+        public required Guid Id { get; set; }
+        public required PlayerDTO Player { get; set; }
     }
 }
