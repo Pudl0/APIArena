@@ -33,6 +33,12 @@ namespace APIArena.Services
                     Id = player.Id,
                     X = 0,
                     Y = 0
+                },
+                Enemy = new PlayerDTO
+                {
+                    Id = (Guid)session.Player2Id,
+                    X = map.Width - 1,
+                    Y = map.Height - 1
                 }
             };
         }
@@ -54,6 +60,12 @@ namespace APIArena.Services
                     Id = player.Id,
                     X = player.XPos,
                     Y = player.YPos
+                },
+                Enemy = new PlayerDTO
+                {
+                    Id = (Guid)session.Player1Id,
+                    X = 0,
+                    Y = 0
                 }
             };
         }
@@ -116,6 +128,31 @@ namespace APIArena.Services
             Session session = await CreateSessionAsync(botPlayer.Id, map.Id, GameDTO.GameMode.PvE);
 
             return await JoinSessionAsync(session.Id, player, map);
+        }
+        public async Task<GameDTO?> GetGameDtoByIdAsync(Guid id, Player player)
+        {
+            Session? session = await GetSessionByIdAsync(id);
+            if (session == null)
+                return null;
+
+            Player enemy = session.Player1Id == player.Id ? session.Player2! : session.Player1;
+
+            return new GameDTO
+            {
+                Id = session.Id,
+                Player = new PlayerDTO
+                {
+                    Id = player.Id,
+                    X = player.XPos,
+                    Y = player.YPos
+                },
+                Enemy = new PlayerDTO
+                {
+                    Id = enemy.Id,
+                    X = enemy.XPos,
+                    Y = enemy.YPos
+                }
+            };
         }
     }
 }

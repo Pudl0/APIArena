@@ -27,8 +27,11 @@ namespace APIArena.Services
 
             return player;
         }
+
         public async Task<Player?> GetPlayerByIdAsync(Guid id)
-        => await _context.Players.FindAsync(id);
+        {
+            return await _context.Players.FindAsync(id);
+        }
 
         public async Task<bool> UpdatePlayerAsync(Player player)
         {
@@ -41,6 +44,7 @@ namespace APIArena.Services
             List<Player> players = await _context.Players.Where(p => p.ApiKeyId == apiKey.Id).ToListAsync();
             return players.Where(players => players.Id == session.Player1Id || players.Id == session.Player2Id).First();
         }
+
         public async Task<Player?> MoveTop(Player player, MapDTO map)
         {
             player.YPos++;
@@ -99,7 +103,6 @@ namespace APIArena.Services
 
         public async Task<bool> StoreRessourceAsync(Player player, MapDTO map)
         {
-
             if (!(map.Tiles[player.XPos][player.YPos].Type == TileDTO.TileType.Base))
                 return false;
 
@@ -111,7 +114,6 @@ namespace APIArena.Services
 
         public async Task<bool> DeletePlayerAsync(Guid id)
         {
-
             Player? player = await _context.Players.FirstOrDefaultAsync(p => p.Id == id);
             if (player == null)
                 return false;
@@ -119,6 +121,72 @@ namespace APIArena.Services
             _context.Players.Remove(player);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task BotPlayAsync(Player botPlayer, MapDTO map, Player player)
+        {
+            if (map.Tiles[botPlayer.XPos][botPlayer.YPos].Type == TileDTO.TileType.Gold)
+            {
+                await MineRessourceAsync(botPlayer, map);
+            }
+            else if (botPlayer.Gold == 0)
+            {
+                // Find the nearest gold tile
+                TileDTO.TileType targetTileType = TileDTO.TileType.Gold;
+                List<TileDTO> goldTiles = map.Tiles.SelectMany(row => row).Where(tile => tile.Type == targetTileType).ToList();
+                TileDTO? nearestGoldTile = goldTiles.OrderBy(tile => Math.Abs(tile.X - botPlayer.XPos) + Math.Abs(tile.Y - botPlayer.YPos)).FirstOrDefault();
+
+                if (nearestGoldTile != null)
+                {
+                    if (nearestGoldTile.X > botPlayer.XPos)
+                    {
+                        await MoveRight(botPlayer, map);
+                    }
+                    else if (nearestGoldTile.X < botPlayer.XPos)
+                    {
+                        await MoveLeft(botPlayer, map);
+                    }
+                    else if (nearestGoldTile.Y > botPlayer.YPos)
+                    {
+                        await MoveTop(botPlayer, map);
+                    }
+                    else if (nearestGoldTile.Y < botPlayer.YPos)
+                    {
+                        await MoveBottom(botPlayer, map);
+                    }
+                }
+            }
+            else
+            {
+                // Find the base tile
+                TileDTO.TileType targetTileType = TileDTO.TileType.Base;
+                List<TileDTO> baseTiles = map.Tiles.SelectMany(row => row).Where(tile => tile.Type == targetTileType).ToList();
+                TileDTO? baseTile = baseTiles.FirstOrDefault();
+
+                if (baseTile != null)
+                {
+                    if (baseTile.X > botPlayer.XPos)
+                    {
+                        await MoveRight(botPlayer, map);
+                    }
+                    else if (baseTile.X < botPlayer.XPos)
+                    {
+                        await MoveLeft(botPlayer, map);
+                    }
+                    else if (baseTile.Y > botPlayer.YPos)
+                    {
+                        await MoveTop(botPlayer, map);
+                    }
+                    else if (baseTile.Y < botPlayer.YPos)
+                    {
+                        await MoveBottom(botPlayer, map);
+                    }
+                    else
+                    {
+                        await StoreRessourceAsync(botPlayer, map);
+                    }
+                }
+            }
         }
     }
 }
