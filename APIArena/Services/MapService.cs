@@ -22,11 +22,11 @@ namespace APIArena.Services
             }
 
             map.Id = await CreateMapAsync(map);
-            await GenerateRessourcesAsync(map);
+            map = GenerateRessourcesAsync(map);
 
             return map;
         }
-        private async Task GenerateRessourcesAsync(MapDTO mapDto)
+        private static MapDTO GenerateRessourcesAsync(MapDTO mapDto)
         {
             const int spawnrate = 4;
             Random random = new();
@@ -46,7 +46,7 @@ namespace APIArena.Services
                 mapDto.Tiles[x][y].Type = TileDTO.TileType.Gold;
             }
 
-            await UpdateMapAsync(mapDto);
+            return mapDto;
         }
         public async Task<Guid> CreateMapAsync(MapDTO mapDto)
         {
@@ -58,9 +58,18 @@ namespace APIArena.Services
 
         public async Task UpdateMapAsync(MapDTO mapDto)
         {
-            Map map = Map.FromMapDTO(mapDto);
-            _context.Maps.Update(map);
-            await _context.SaveChangesAsync();
+            var existingMap = await _context.Maps.FindAsync(mapDto.Id);
+            if (existingMap != null)
+            {
+                _context.Entry(existingMap).CurrentValues.SetValues(mapDto);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                var newMap = Map.FromMapDTO(mapDto);
+                _context.Maps.Add(newMap);
+                await _context.SaveChangesAsync();
+            }
         }
         public async Task<MapDTO?> GetMapDTOByIdAsync(Guid id)
         {

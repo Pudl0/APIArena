@@ -201,7 +201,7 @@ namespace APIArena.Controllers
             if (game is null || mapDTO is null)
                 return NotFound();
 
-            return Ok(new { session, map});
+            return Ok(new { game, map});
         }
         private async Task<IActionResult> PlayPvEGame(ApiKey apiKey, Session session, string action)
         {
@@ -304,7 +304,7 @@ namespace APIArena.Controllers
             if (game is null || mapDTO is null)
                 return NotFound();
 
-            return Ok(new { session, map });
+            return Ok(new { moveMade = true, game, map });
         }
         private async Task TurnEnd(Player player, Session session)
         {
