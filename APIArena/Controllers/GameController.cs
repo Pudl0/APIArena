@@ -117,6 +117,9 @@ namespace APIArena.Controllers
                 return BadRequest(ModelState);
             }
 
+            player.PlayedTurn = true;
+            await _playerService.UpdatePlayerAsync(player);
+
             MapDTO? map = await _mapService.GetMapDTOByIdAsync(session.MapId);
             if (map == null)
                 return NotFound();
@@ -211,6 +214,9 @@ namespace APIArena.Controllers
                 return BadRequest(ModelState);
             }
 
+            player.PlayedTurn = true;
+            await _playerService.UpdatePlayerAsync(player);
+
             MapDTO? map = await _mapService.GetMapDTOByIdAsync(session.MapId);
             if (map == null)
                 return NotFound();
@@ -275,9 +281,6 @@ namespace APIArena.Controllers
                 return NotFound();
             }
 
-            player.PlayedTurn = true;
-            await _playerService.UpdatePlayerAsync(player);
-
             // bot player plays
             await _playerService.BotPlayAsync(botPlayer, map, player);
             await _sessionService.IncrementRound(session.Id);
@@ -305,8 +308,6 @@ namespace APIArena.Controllers
         }
         private async Task TurnEnd(Player player, Session session)
         {
-            player.PlayedTurn = true;
-            await _playerService.UpdatePlayerAsync(player);
             await _sessionService.WaitForRoundEnd(session.Id);
 
             player.PlayedTurn = false;
