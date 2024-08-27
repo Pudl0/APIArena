@@ -49,7 +49,22 @@ namespace APIArena.Middleware
 
             return false;
         }
+        public async Task<ApiKey?> GetSavedKeyFromInputAsync(string apiKey)
+        {
+            using var context = dbContextFactory.CreateDbContext();
 
+            foreach (var key in await context.ApiKeys.ToListAsync())
+            {
+                using var deriveBytes = new Rfc2898DeriveBytes(apiKey, key.Salt, Iterations, HashAlgorithmName.SHA512);
+
+                if (key.Id.SequenceEqual(deriveBytes.GetBytes(32)))
+                {
+                    return key;
+                }
+            }
+
+            return null;
+        }
         public static (ApiKey, string key) GenerateApiKey(string name, string scopes = "")
         {
             var key = Guid.NewGuid().ToString();

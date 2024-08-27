@@ -4,6 +4,7 @@ using APIArena.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace APIArena.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240826084324_AddedApiKeyToPlayer")]
+    partial class AddedApiKeyToPlayer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,27 +50,6 @@ namespace APIArena.Migrations
                     b.ToTable("ApiKeys");
                 });
 
-            modelBuilder.Entity("APIArena.Models.Map", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<int>("Height")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SerializedTiles")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Width")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Maps");
-                });
-
             modelBuilder.Entity("APIArena.Models.Player", b =>
                 {
                     b.Property<Guid>("Id")
@@ -75,6 +57,7 @@ namespace APIArena.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<byte[]>("ApiKeyId")
+                        .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varbinary(32)");
 
@@ -110,11 +93,8 @@ namespace APIArena.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("MapId")
+                    b.Property<Guid>("ArenaId")
                         .HasColumnType("char(36)");
-
-                    b.Property<int>("Mode")
-                        .HasColumnType("int");
 
                     b.Property<Guid>("Player1Id")
                         .HasColumnType("char(36)");
@@ -127,8 +107,6 @@ namespace APIArena.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MapId");
-
                     b.HasIndex("Player1Id");
 
                     b.HasIndex("Player2Id");
@@ -136,46 +114,19 @@ namespace APIArena.Migrations
                     b.ToTable("Sessions");
                 });
 
-            modelBuilder.Entity("APIArena.Models.Setting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Settings");
-                });
-
             modelBuilder.Entity("APIArena.Models.Player", b =>
                 {
                     b.HasOne("APIArena.Models.ApiKey", "ApiKey")
                         .WithMany()
-                        .HasForeignKey("ApiKeyId");
+                        .HasForeignKey("ApiKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("ApiKey");
                 });
 
             modelBuilder.Entity("APIArena.Models.Session", b =>
                 {
-                    b.HasOne("APIArena.Models.Map", "Map")
-                        .WithMany()
-                        .HasForeignKey("MapId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("APIArena.Models.Player", "Player1")
                         .WithMany()
                         .HasForeignKey("Player1Id")
@@ -185,8 +136,6 @@ namespace APIArena.Migrations
                     b.HasOne("APIArena.Models.Player", "Player2")
                         .WithMany()
                         .HasForeignKey("Player2Id");
-
-                    b.Navigation("Map");
 
                     b.Navigation("Player1");
 
